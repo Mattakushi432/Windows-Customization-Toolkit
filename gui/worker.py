@@ -16,6 +16,7 @@ from pathlib import Path
 from PySide6.QtCore import QObject, Signal
 
 from core import appx_cleaner, iso_builder, registry_tweaks, software_injector, unattend_generator, wim_manager
+from gui.i18n import tr
 from gui.models import WizardState
 
 logger = logging.getLogger("wct.gui.worker")
@@ -108,19 +109,19 @@ class PipelineWorker(QObject):
 
         wim_manager.require_admin()
 
-        self.stage_changed.emit("Checking for orphaned mounts")
+        self.stage_changed.emit(tr("Checking for orphaned mounts"))
         wim_manager.resolve_orphaned_mounts(self._orphan_resolver)
 
-        self.stage_changed.emit(f"Mounting image (index {state.selected_index})")
+        self.stage_changed.emit(tr("Mounting image (index {index})").format(index=state.selected_index))
         with wim_manager.mounted_wim(str(install_wim), state.selected_index, str(mount_dir)):
             self._apply_debloat(mount_dir)
             self._apply_registry_tweaks(mount_dir)
             self._apply_software(mount_dir)
 
-        self.stage_changed.emit("Writing unattend answer file")
+        self.stage_changed.emit(tr("Writing unattend answer file"))
         unattend_generator.write_unattend_xml(state.unattend, source_dir / "autounattend.xml")
 
-        self.stage_changed.emit("Building ISO")
+        self.stage_changed.emit(tr("Building ISO"))
         strategy = None
         if state.iso_strategy_name == "oscdimg":
             strategy = iso_builder.OscdimgIsoBuilder()
@@ -128,16 +129,16 @@ class PipelineWorker(QObject):
             strategy = iso_builder.XorrisoIsoBuilder()
         output_path = iso_builder.build_iso(source_dir, state.output_iso_path, strategy=strategy)
 
-        self.stage_changed.emit("Verifying ISO")
+        self.stage_changed.emit(tr("Verifying ISO"))
         iso_builder.verify_iso(output_path)
 
-        self.stage_changed.emit("Done")
+        self.stage_changed.emit(tr("Done"))
         return output_path
 
     def _apply_debloat(self, mount_dir: Path) -> None:
         if not self._state.selected_appx_patterns:
             return
-        self.stage_changed.emit("Removing provisioned Appx packages")
+        self.stage_changed.emit(tr("Removing provisioned Appx packages"))
         available = appx_cleaner.get_provisioned_appx_packages(str(mount_dir))
         selected = appx_cleaner.select_packages_to_remove(available, self._state.selected_appx_patterns)
         appx_cleaner.remove_packages(
@@ -149,13 +150,21 @@ class PipelineWorker(QObject):
     def _apply_registry_tweaks(self, mount_dir: Path) -> None:
         tweaks = self._state.reg_tweaks
         for i, tweak in enumerate(tweaks, start=1):
-            self.stage_changed.emit(f"Applying registry tweak {i}/{len(tweaks)}: {Path(tweak.reg_file_path).name}")
+            self.stage_changed.emit(
+                tr("Applying registry tweak {i}/{n}: {name}").format(
+                    i=i, n=len(tweaks), name=Path(tweak.reg_file_path).name
+                )
+            )
             registry_tweaks.import_reg_file(str(mount_dir), tweak.hive, tweak.reg_file_path)
 
     def _apply_software(self, mount_dir: Path) -> None:
         installers = self._state.installers
         for i, step in enumerate(installers, start=1):
-            self.stage_changed.emit(f"Staging installer {i}/{len(installers)}: {Path(step.installer_path).name}")
+            self.stage_changed.emit(
+                tr("Staging installer {i}/{n}: {name}").format(
+                    i=i, n=len(installers), name=Path(step.installer_path).name
+                )
+            )
             software_injector.stage_silent_install(
                 str(mount_dir), step.installer_path, step.silent_args, dest_name=step.dest_name
             )
