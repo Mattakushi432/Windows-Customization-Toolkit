@@ -17,6 +17,7 @@ from PySide6.QtWidgets import QApplication, QMessageBox
 
 from core import wim_manager
 from core.logging_config import setup_logging
+from gui.i18n import tr
 from gui.wizard import CustomizerWizard
 
 
@@ -33,10 +34,12 @@ def main() -> int:
         )
         QMessageBox.warning(
             None,
-            "Administrator privileges required",
-            "This tool needs Administrator privileges for DISM and registry "
-            "operations. You can browse the wizard, but the build step will "
-            "fail until you re-launch this app as Administrator.",
+            tr("Administrator privileges required"),
+            tr(
+                "This tool needs Administrator privileges for DISM and registry "
+                "operations. You can browse the wizard, but the build step will "
+                "fail until you re-launch this app as Administrator."
+            ),
         )
 
     wizard = CustomizerWizard()
