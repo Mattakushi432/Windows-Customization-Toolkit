@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+  <assemblyIdentity
+      version="1.0.0.0"
+      processorArchitecture="*"
+      name="WindowsCustomizationToolkit"
+      type="win32"/>
+  <description>Windows Customization Toolkit - ISO/WIM image customizer</description>
+
+  <!-- Require Administrator: DISM mount/unmount and offline registry hive
+       load/unload both need elevated privileges (see core.wim_manager,
+       core.registry_tweaks). Requesting it here makes Windows show the
+       UAC prompt before the process even starts, instead of the app
+       trying to self-elevate via a runas trick from inside Python - see
+       win-iso-customizer-prompt.md section 2, which explicitly calls for
+       the manifest, not a runas workaround. -->
+  <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
+    <security>
+      <requestedPrivileges>
+        <requestedExecutionLevel level="requireAdministrator" uiAccess="false"/>
+      </requestedPrivileges>
+    </security>
+  </trustInfo>
+
+  <asmv3:application xmlns:asmv3="urn:schemas-microsoft-com:asm.v3">
+    <!-- Per-monitor DPI awareness so the wizard doesn't render blurry on
+         scaled displays. -->
+    <asmv3:windowsSettings xmlns:ws="http://schemas.microsoft.com/SMI/2005/WindowsSettings">
+      <ws:dpiAware>true/PM</ws:dpiAware>
+    </asmv3:windowsSettings>
+    <!-- The extracted ISO source tree + mounted WIM can produce paths
+         well past MAX_PATH; this opts into the long-path behavior
+         Windows 10/11 supports (still requires the machine-wide
+         LongPathsEnabled policy to be on for it to fully take effect). -->
+    <asmv3:windowsSettings xmlns:ws2="http://schemas.microsoft.com/SMI/2016/WindowsSettings">
+      <ws2:longPathAware>true</ws2:longPathAware>
+    </asmv3:windowsSettings>
+  </asmv3:application>
+
+  <!-- Declare Windows 10/11 compatibility so common-control theming and
+       modern shell APIs behave correctly. -->
+  <compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
+    <application>
+      <!-- Windows 10/11 -->
+      <supportedOS Id="{8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a}"/>
+    </application>
+  </compatibility>
+</assembly>
